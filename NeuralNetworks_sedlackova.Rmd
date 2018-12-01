@@ -1,0 +1,89 @@
+---
+gtitle: "NeuralNetworks"
+author: "Anna Sedlackova"
+date: "11/24/2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(datasets)
+```
+
+## Exercie 1: Linear Decision Boundaries
+### Part A
+
+Lets load and important the iris data set
+```{r}
+data(iris)
+summary(iris)
+```
+
+```{r}
+# Lets look at the head of the iris data set
+head(iris)
+
+# Number of rows of the iris dataset (number of individual observations)
+nrow(iris)
+
+# All of the columns are numeric except for the species column
+# They are continuous because they correspond to length and width (except for species) # The species are discrete
+sapply(iris, class)
+
+# The only categorical variable is species in this iris dataset
+sapply(iris, class)
+```
+
+From our observations it looks like there are 50 samples of three species: setosa, versicolor and virginica. Each of the samples has measurements of sepal lenght, sepal width and petal length.
+
+Let's plot the second and third iris classses:
+```{r}
+# Lets pick the 2nd and 3rd classes: versicolor and virginica and let's plot the subset
+plot1 <- iris %>% filter(Species == 'versicolor' | Species == 'virginica') %>%
+ggplot(aes(x = Petal.Length, y = Petal.Width, color = Species)) + geom_point() +
+labs(color = "Species") + xlab("Petal Length") + ylab("Petal Width") +
+ggtitle("Petal Width vs Petal Length for Versicolor and Virginica")
+
+plot1
+```
+
+### Part B
+
+The following function will take in five inputs (c0, c1, c2) which are constants that will be estimated later in this exercise and (x1, x2) which correspond to petal width and petal length. The output will return a value between a probability value between 0 and 1 where all values above 0.5 will correspond to the 3rd iris class and values below 0.5 to the 2nd iris class. 
+
+```{r}
+# inputs: c0, c1, c2, petal_width, petal_length
+# outputs: 
+
+one_layer_neural_network <- function(c0, c1, c2, petal_width, petal_length) {
+  
+  # Linear function
+  z <- c0 + c1*x1 + c2*x2
+  
+  #result
+  result <- 1/(1 + exp(1)^(-z))
+    
+  return(result)
+}
+```
+
+
+### Part C
+
+We are going to estimate the constant values such as c0 = 2.8, c1 = -1/4 and c2 = 1.
+
+```{r}
+z_function <- function(x) (2.8 + (-1/4)*x)
+ 
+# Lets pick the 2nd and 3rd classes: versicolor and virginica and let's plot the subset
+plot2 <- iris %>% filter(Species == 'versicolor' | Species == 'virginica') %>%
+ggplot(aes(x = Petal.Length, y = Petal.Width, color = Species)) + geom_point() +
+labs(color = "Species") + xlab("Petal Length") + ylab("Petal Width") +
+ggtitle("Petal Width vs Petal Length for Versicolor and Virginica") + stat_function(fun = z_function)
+
+plot2
+```
+### Part D
+### Part E
+
