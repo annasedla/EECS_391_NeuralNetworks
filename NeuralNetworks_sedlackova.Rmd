@@ -62,7 +62,7 @@ one_layer_neural_network <- function(c0, c1, c2, petal_width, petal_length) {
   z <- c0 + c1*petal_length + c2*petal_width
   
   #result
-  result <- 1/(1 + exp(-z))
+  result <- 1-1/(1 + exp(-z))
     
   return (result)
 }
@@ -100,10 +100,11 @@ for (i in 1:50){
 
   if (one_layer_neural_network(2.8, -1/4, -1, data1$petal_width[i], data1$petal_length[i]) < 0.5){
 
-     resulting_flower <- "virginica"
+     resulting_flower <- "versicolor"
   } else {
-    resulting_flower <- "versicolor"
+    resulting_flower <- "virginica"
   }
+  print (one_layer_neural_network(2.8, -1/4, -1, data1$petal_width[i], data1$petal_length[i]))
   print(paste("actual: versicolor, predicted:", resulting_flower))
 }
 
@@ -113,10 +114,11 @@ data2 <- iris_data %>% filter (species == 'virginica')
 for (j in 1:50){
   if (one_layer_neural_network(2.8, -1/4, -1, data2$petal_width[j], data2$petal_length[j]) < 0.5){
 
-     resulting_flower <- "virginica"
+     resulting_flower <- "versicolor"
   } else {
-    resulting_flower <- "versicolor"
+    resulting_flower <- "virginica"
   }
+  print (one_layer_neural_network(2.8, -1/4, -1, data2$petal_width[j], data2$petal_length[j]))
   print(paste("actual: virginica, predicted: ", resulting_flower))
 }
 ```
@@ -145,25 +147,25 @@ mean_squared_error <- function(data, w0, w1, w2) {
   # Now lets compute the sum of all the errors
   for (j in 1:100){
     if (j <= 50){
-      resulting_sum = resulting_sum + (pattern_classes[j] - 1)^2
-    } else {
       resulting_sum = resulting_sum + (pattern_classes[j] - 0)^2
+    } else {
+      resulting_sum = resulting_sum + (pattern_classes[j] - 1)^2
     }
   }
-  return(resulting_sum)
+  return(resulting_sum/100)
 }
 ```
 
 ### Part B
 
-I have decided to look at three different values. First, I computed the mean square error of the original and got a mean square error of 14.89: 
+I have decided to look at three different values. First, I computed the mean square error of the original and got a mean square error of 0.1489: 
 
 ```{r}
 # Mean squared error for the one we graphed before
 paste0("Previous Mean Square Error: ", mean_squared_error(iris_data, 2.8, -1/4, -1))
 ```
 
-Then I made a completely incorrect estimate such that the boundary is not even touching any of the data points and got a mean square error of 32.25.
+Then I made a completely incorrect estimate such that the boundary is not even touching any of the data points and got a mean square error of 0.3225.
 ```{r}
 # High error
 paste0("High Mean Square Error: ", mean_squared_error(iris_data, 1, -1/4, -1))
@@ -178,7 +180,7 @@ ggtitle("High Mean Square Error: Petal Width vs Petal Length for Versicolor and 
 plot3
 ```
 
-Finally, I found a slighly better boundary line that made only three points dislocated and decreased the mean square error slightly to 14.23.
+Finally, I found a slighly better boundary line that made only three points dislocated and decreased the mean square error slightly to 0.1423.
 
 ```{r}
 # Low error
@@ -195,3 +197,53 @@ plot4
 ```
 
 ### Part C
+
+The equation that calculates the p function as I call it (officially the class probabilities) is listed below. This is also the output of the neural network.
+$$ p =\sigma (w_0  + w_1 * x_1 + w_2 * x_2)$$ 
+
+Where $\sigma$ is the sigmoid activation function. From there we derived the calculations of the mean squared error as follow:
+$$meanSquareError = \frac{1}{N}\sum\limits_{n=1}^{N} ( p - y_n)^2 $$
+
+Where $y_n$ is the known label the value that is either 0 (for versicolor) or 1 (for virginica). N is the total number of data points aka 50 for versicolor and 50 virginica so the total is 100.
+
+The derivative of the sigmoid function is:
+$$\frac{d\sigma(x)}{dx} = \sigma(x) * (1 - \sigma(x))$$ 
+
+For simplification the weight column vector is the following where the shape of w is 3 by 1 for the three constants:
+$$\textbf{w} = \begin{bmatrix}
+           w_{0} \\
+           w_{1} \\
+           w_{2}
+         \end{bmatrix}$$ 
+
+All of the obserations can be fitted into a matrix such as where the shape of X is m = 100 by 3:
+$$\textbf{X} = \left( \begin{array}{ccc}
+1 & L_1 & W_1 \\
+1 & L_2 & W_2 \\
+\vdots & \vdots & \vdots\\
+1 & L_m & W_m \end{array} \right)$$ 
+
+
+For y, the shape is n = 100 by 1:
+$$\textbf{y} = \begin{bmatrix}
+           y_{1} \\
+           y_{2} \\
+           \vdots \\
+           y_{n}
+         \end{bmatrix}$$
+
+Which means that we can rewrite the meansSquareError such as:
+$$meanSquareError = \frac{1}{N}  ( \sigma(\textbf{X} \textbf{w}) - \textbf{y})^2$$
+
+Now let us take a derivative of the above function with respect to the output of the neural network. Then let's set it to zero and minimize it using gradient descent. We will be using the vector form.
+$$\frac{\partial(meanSquareError)}{\partial\sigma} = \frac{2}{N} * \textbf{x} * (1 - \sigma(\textbf{x} * \textbf{w}) * ( \sigma(\textbf{x} * \textbf{w}) - \textbf{y}) $$
+
+Now to substitute the probability (p):
+$$\frac{\partial(meanSquareError)}{\partial\sigma} = \frac{2}{N} * \textbf{x} * (1 - \textbf{p}) * (\textbf{p} - \textbf{y}) $$
+
+### Part D
+???? HELP PLS
+
+### Part E
+ 
+
