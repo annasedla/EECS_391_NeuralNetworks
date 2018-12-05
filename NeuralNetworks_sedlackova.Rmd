@@ -35,12 +35,12 @@ sapply(iris_data, class)
 sapply(iris_data, class)
 ```
 
-From our observations it looks like there are 50 samples of three species: setosa, versicolor and virginica. Each of the samples has measurements of sepal lenght, sepal width and petal length.
+From our observations it looks like there are 50 samples of three species: setosa, versicolor and virginica. Each of the samples has measurements of sepal length, sepal width and petal length.
 
-Let's plot the second and third iris classses:
+Let's plot the second (versicolor) and third (virginica) iris classses:
 ```{r}
 # Lets pick the 2nd and 3rd classes: versicolor and virginica and let's plot the subset
-plot1 <- iris_data %>% filter(species == 'versicolor' | species == 'virginica') %>%
+plot1 <- iris_data %>% filter(species %in% c('versicolor','virginica')) %>%
 ggplot(aes(x = petal_length, y = petal_width, color = species)) + geom_point() +
 labs(color = "Species") + xlab("Petal Length") + ylab("Petal Width") +
 ggtitle("Petal Width vs Petal Length for Versicolor and Virginica")
@@ -50,19 +50,19 @@ plot1
 
 ### Part B
 
-The following function will take in five inputs (c0, c1, c2) which are constants that will be estimated later in this exercise and (x1, x2) which correspond to petal width and petal length. The output will return a value between a probability value between 0 and 1 where all values above 0.5 will correspond to the 3rd iris class and values below 0.5 to the 2nd iris class. 
+The following function will take in five inputs ($w_0$, $w_1$, $w_2$) which are constants that will be estimated later in this exercise and (x1, x2) which correspond to petal width and petal length. The output will return a value between a probability value between 0 and 1 where all values greater than or equal to 0.5 will correspond to the 3rd iris class (this class will be denoted by 1), and values below 0.5 to the 2nd iris class (this class will be denoted by 0). 
 
 ```{r}
 # inputs: c0, c1, c2, petal_width, petal_length
 # outputs: value between 0 and 1 representing the probability
 
-one_layer_neural_network <- function(c0, c1, c2, petal_width, petal_length) {
+one_layer_neural_network <- function(w0, w1, w2, petal_length, petal_width) {
   
   # Linear function
-  z <- c0 + c1*petal_length + c2*petal_width
+  z <- w0 + w1*petal_length + w2*petal_width
   
   #result
-  result <- 1-1/(1 + exp(-z))
+  result <- 1/(1 + exp(-z))
     
   return (result)
 }
@@ -70,13 +70,22 @@ one_layer_neural_network <- function(c0, c1, c2, petal_width, petal_length) {
 
 ### Part C
 
-We are going to estimate the constant values such as c0 = 2.8, c1 = -1/4 and c2 = 1.
+By playing around with the parameters, we select $w_0$ = -2.8, $w_1$ = 0.25 and $w_2$ = 1, which gives a decision boundary that separates the data decently (see below). The boundary that separates the data arises by noting the following:
+
+Starting with the condition that a given iris flower is in class 1 (virginica):
+$$\sigma(\textbf{w}^T\textbf{x}) \ge 0.5$$
+where $\sigma$ is the logistic function, $\textbf{w} = (w_0, w_1, w_2)$, and $\textbf{x} = (1, x_1, x_2)$ ($x_1$ corresponds to petal length and $x_2$ corresponds to petal width). After a bit of manipulation, the above inequality implies the following:
+$$\textbf{w}^T\textbf{x} \ge 0 $$
+
+Writing this out with our chosen values for the coefficients above gives us:
+$$-2.8 + 0.25x_1 + x_2 \ge 0 $$
+Consequently, the decision boundary is given by the line $x_2 = 2.8-0.25x_1$ (above this line will be class 1 (virginica), and below this line will be class 0 (versicolor)). This result is plotted below:
 
 ```{r}
 z_function <- function(x) (2.8 + (-1/4)*x)
  
 # Lets pick the 2nd and 3rd classes: versicolor and virginica and let's plot the subset
-plot2 <- iris_data %>% filter(species == 'versicolor' | species == 'virginica') %>%
+plot2 <- iris_data %>% filter(species %in% c('versicolor','virginica')) %>%
 ggplot(aes(x = petal_length, y = petal_width, color = species)) + geom_point() +
 labs(color = "Species") + xlab("Petal Length") + ylab("Petal Width") +
 ggtitle("Petal Width vs Petal Length for Versicolor and Virginica") + stat_function(fun = z_function)
@@ -90,7 +99,7 @@ UGH 3D???
 
 ### Part E
 
-Now lets see how are function from question b performs:
+Now let's see how are function from Part B performs:
 
 ```{r}
 # Versicolor
@@ -98,84 +107,84 @@ data1 <- iris_data %>% filter (species == 'versicolor')
 
 for (i in 1:50){
 
-  if (one_layer_neural_network(2.8, -1/4, -1, data1$petal_width[i], data1$petal_length[i]) < 0.5){
-
+  if (one_layer_neural_network(-2.8, 0.25, 1, data1$petal_length[i], data1$petal_width[i]) < 0.5){
      resulting_flower <- "versicolor"
+     
   } else {
+    
     resulting_flower <- "virginica"
   }
-  print (one_layer_neural_network(2.8, -1/4, -1, data1$petal_width[i], data1$petal_length[i]))
-  print(paste("actual: versicolor, predicted:", resulting_flower))
+  print(paste0("actual: versicolor, predicted: ", resulting_flower))
 }
 
 # Virginica
 data2 <- iris_data %>% filter (species == 'virginica')
 
 for (j in 1:50){
-  if (one_layer_neural_network(2.8, -1/4, -1, data2$petal_width[j], data2$petal_length[j]) < 0.5){
-
+  if (one_layer_neural_network(-2.8, 0.25, 1, data2$petal_length[j], data2$petal_width[j]) < 0.5){
      resulting_flower <- "versicolor"
+     
   } else {
     resulting_flower <- "virginica"
   }
-  print (one_layer_neural_network(2.8, -1/4, -1, data2$petal_width[j], data2$petal_length[j]))
-  print(paste("actual: virginica, predicted: ", resulting_flower))
+  print(paste0("actual: virginica, predicted: ", resulting_flower))
 }
 ```
 
 Results match to what we have seen in the graph above.
 
-## Exercie 2: Neural networks
+## Exercise 2: Neural Networks
 ### Part A
 
-Mean squared error calculations. The inputs are in order: the data vectors (as the iris dataset that the petal length and petal width information is taken from), the parameters defining the neural network (w0, w1, w2). The pattern classes are computed inside the algorithm.
-
+Mean squared error calculations. The inputs are in order: the data vectors (as the iris dataset that the petal length and petal width information is taken from), the parameters defining the neural network ($w_0$, $w_1$, $w_2$).
 ```{r}
-mean_squared_error <- function(data, w0, w1, w2) {
-  
-  # Lets setup a vector for the pattern classes
-  pattern_classes <- rep(NA, 100)
+# Input feature vectors
+X_data <- iris_data %>% filter(species %in% c("versicolor","virginica")) %>% select(petal_length, petal_width)
+# Pattern classes for each feature vector above
+y_data <- iris_data %>%
+  filter(species %in% c("versicolor","virginica")) %>%
+  select(species) %>%
+  mutate(label = ifelse(species == "versicolor", 0, 1)) %>%
+  select(-species)
 
-  for (i in 1:100){
-    pattern_classes[i] = one_layer_neural_network(w0, w1, w2, data$petal_width[i+50],
-                                                  data$petal_length[i+50])
+mean_squared_error <- function(X, y, w0, w1, w2) {
+  
+  # Outputs of neural network for each example
+  NN_outputs <- rep(0,nrow(X))
+
+  for (i in 1:nrow(X)){
+    NN_outputs[i] = one_layer_neural_network(w0, w1, w2, X$petal_length[i], X$petal_width[i])
   }
 
-  # what is returned by the program
-  resulting_sum <- 0
+  # Compute the differences between the NN outputs and the labels
+  result = mean((NN_outputs - y$label)^2)
   
-  # Now lets compute the sum of all the errors
-  for (j in 1:100){
-    if (j <= 50){
-      resulting_sum = resulting_sum + (pattern_classes[j] - 0)^2
-    } else {
-      resulting_sum = resulting_sum + (pattern_classes[j] - 1)^2
-    }
-  }
-  return(resulting_sum/100)
+  # Return result
+  return(result)
 }
 ```
 
 ### Part B
 
-I have decided to look at three different values. First, I computed the mean square error of the original and got a mean square error of 0.1489: 
+I have decided to look at three different values. First, I computed the mean square error of the original and got a mean square error of approximately 0.1489: 
 
 ```{r}
-# Mean squared error for the one we graphed before
-paste0("Previous Mean Square Error: ", mean_squared_error(iris_data, 2.8, -1/4, -1))
+# Mean squared error for decision boundary we guessed above
+paste0("Previous Mean Square Error: ", mean_squared_error(X_data, y_data, -2.8, 0.25, 1))
 ```
 
-Then I made a completely incorrect estimate such that the boundary is not even touching any of the data points and got a mean square error of 0.3225.
+Then I made a completely incorrect estimate of the coefficients such that the boundary is not even touching any of the data points and got a much worse mean square error of 0.4401.
 ```{r}
 # High error
-paste0("High Mean Square Error: ", mean_squared_error(iris_data, 1, -1/4, -1))
+paste0("High Mean Square Error: ", mean_squared_error(X_data, y_data, 1, -0.25, -1))
 
-z_function2 <- function(x) (1 + (-1/4)*x)
+z_function2 <- function(x) (1 - (0.25)*x)
  
-plot3 <- iris_data %>% filter(species == 'versicolor' | species == 'virginica') %>%
+plot3 <- iris_data %>% filter(species %in% c('versicolor','virginica')) %>%
 ggplot(aes(x = petal_length, y = petal_width, color = species)) + geom_point() +
 labs(color = "Species") + xlab("Petal Length") + ylab("Petal Width") +
-ggtitle("High Mean Square Error: Petal Width vs Petal Length for Versicolor and Virginica") + stat_function(fun = z_function2)
+ggtitle("High Mean Square Error: Petal Width vs Petal Length for Versicolor and Virginica") +
+  stat_function(fun = z_function2)
 
 plot3
 ```
@@ -184,66 +193,61 @@ Finally, I found a slighly better boundary line that made only three points disl
 
 ```{r}
 # Low error
-paste0("Low Mean Square Error: ", mean_squared_error(iris_data, 3.15, -1/3, -1))
+paste0("Low Mean Square Error: ", mean_squared_error(X_data, y_data, -3.15, 1/3, 1))
 
 z_function3 <- function(x) (3.15 + (-1/3)*x)
  
 plot4 <- iris_data %>% filter(species == 'versicolor' | species == 'virginica') %>%
 ggplot(aes(x = petal_length, y = petal_width, color = species)) + geom_point() +
 labs(color = "Species") + xlab("Petal Length") + ylab("Petal Width") +
-ggtitle("Low Mean Square Error: Petal Width vs Petal Length for Versicolor and Virginica") + stat_function(fun = z_function3)
+ggtitle("Low Mean Square Error: Petal Width vs Petal Length for Versicolor and Virginica") +
+  stat_function(fun = z_function3)
 
 plot4
 ```
 
 ### Part C
 
-The equation that calculates the p function as I call it (officially the class probabilities) is listed below. This is also the output of the neural network.
-$$ p =\sigma (w_0  + w_1 * x_1 + w_2 * x_2)$$ 
+Before we begin with the derivation, we will set up some notation for convenience. We will denote the number of examples in our data as $m$, which is this case is 100. Our data will be collected in the following matrix:
 
-Where $\sigma$ is the sigmoid activation function. From there we derived the calculations of the mean squared error as follow:
-$$meanSquareError = \frac{1}{N}\sum\limits_{n=1}^{N} ( p - y_n)^2 $$
+$$X = \begin{bmatrix}
+    1 & x_{11} & x_{12} \\
+    \vdots &  \vdots & \vdots \\
+    1 & x_{m1}       & x_{m2}
+\end{bmatrix} =
+\begin{bmatrix}
+    \textbf{x}_1^T \\
+    \vdots  \\
+    \textbf{x}_m^T 
+\end{bmatrix}$$
 
-Where $y_n$ is the known label the value that is either 0 (for versicolor) or 1 (for virginica). N is the total number of data points aka 50 for versicolor and 50 virginica so the total is 100.
+where $\textbf{x}_1^T = \begin{bmatrix} 1 & x_{i1} & x_{i2} \end{bmatrix}$ is a single example with petal length $x_{i1}$ and petal width $x_{i2}$. We will also collect all the corresponding species/classes of these examples in a single vector $\textbf{y}$ below:
 
-The derivative of the sigmoid function is:
-$$\frac{d\sigma(x)}{dx} = \sigma(x) * (1 - \sigma(x))$$ 
+$$\textbf{y} = \begin{bmatrix} y_1 \\ \vdots \\ y_m \end{bmatrix}$$
+where $y_i$ is value (0 or 1) corresponding to the respective species of example $i$. We will also write the coefficients in a single vector $\textbf{w}^T = \begin{bmatrix} w_0 & w_1 & w_2 \end{bmatrix}$. Also, once again, the logistic function is given by $\sigma(z) = (1 + \exp(-z))^{-1}$. With this notation set up, we write the mean squared error (MSE) as a function of the parameter vector as follows:
 
-For simplification the weight column vector is the following where the shape of w is 3 by 1 for the three constants:
-$$\textbf{w} = \begin{bmatrix}
-           w_{0} \\
-           w_{1} \\
-           w_{2}
-         \end{bmatrix}$$ 
+$$MSE(\textbf{w}) = \frac{1}{m}\sum\limits_{i=1}^{m}[\sigma(\textbf{w}^T\textbf{x}_i)-y_i]^2$$
+Noting that the derivative of the logistic function is $\sigma'(z) = \sigma(z)(1-\sigma(z))$, we can compute the partial derivatives of the MSE with respect to each parameter ($w_0$, $w_1$, $w_2$) as follows:
 
-All of the obserations can be fitted into a matrix such as where the shape of X is m = 100 by 3:
-$$\textbf{X} = \left( \begin{array}{ccc}
-1 & L_1 & W_1 \\
-1 & L_2 & W_2 \\
-\vdots & \vdots & \vdots\\
-1 & L_m & W_m \end{array} \right)$$ 
+$$\frac{\partial MSE}{\partial w_0} = \frac{2}{m}\sum\limits_{i=1}^{m}[\sigma(\textbf{w}^T\textbf{x}_i)-y_i]\frac{\partial \sigma(\textbf{w}^T\textbf{x}_i)}{\partial w_0} = \frac{2}{m}\sum\limits_{i=1}^{m}[\sigma(\textbf{w}^T\textbf{x}_i)-y_i][\sigma(\textbf{w}^T\textbf{x}_i)][1- \sigma(\textbf{w}^T\textbf{x}_i)]$$
+Similarly, we can write out the partials with respect to the other two parameters:
 
+$$\frac{\partial MSE}{\partial w_1} = \frac{2}{m}\sum\limits_{i=1}^{m}[\sigma(\textbf{w}^T\textbf{x}_i)-y_i][\sigma(\textbf{w}^T\textbf{x}_i)][1- \sigma(\textbf{w}^T\textbf{x}_i)]x_{i1}$$
+$$\frac{\partial MSE}{\partial w_2} = \frac{2}{m}\sum\limits_{i=1}^{m}[\sigma(\textbf{w}^T\textbf{x}_i)-y_i][\sigma(\textbf{w}^T\textbf{x}_i)][1- \sigma(\textbf{w}^T\textbf{x}_i)]x_{i2}$$
 
-For y, the shape is n = 100 by 1:
-$$\textbf{y} = \begin{bmatrix}
-           y_{1} \\
-           y_{2} \\
-           \vdots \\
-           y_{n}
-         \end{bmatrix}$$
+The $x_{i1}$ and $x_{i2}$ arises in the two results above because, for example, $\frac{\partial (\textbf{w}^T\textbf{x}_i)}{\partial w_1} = \frac{\partial}{\partial w_1}(w_0 + w_1 x_{i1} + w_2 x_{i2}) = x_{i1}$.
 
-Which means that we can rewrite the meansSquareError such as:
-$$meanSquareError = \frac{1}{N}  ( \sigma(\textbf{X} \textbf{w}) - \textbf{y})^2$$
+The combination of these three partial derivatives then gives the gradient of the MSE:
 
-Now let us take a derivative of the above function with respect to the output of the neural network. Then let's set it to zero and minimize it using gradient descent. We will be using the vector form.
-$$\frac{\partial(meanSquareError)}{\partial\sigma} = \frac{2}{N} * \textbf{x} * (1 - \sigma(\textbf{x} * \textbf{w}) * ( \sigma(\textbf{x} * \textbf{w}) - \textbf{y}) $$
-
-Now to substitute the probability (p):
-$$\frac{\partial(meanSquareError)}{\partial\sigma} = \frac{2}{N} * \textbf{x} * (1 - \textbf{p}) * (\textbf{p} - \textbf{y}) $$
+$$\nabla_{\textbf{w}}MSE = \begin{bmatrix} \frac{\partial MSE}{\partial w_0} \\ \frac{\partial MSE}{\partial w_1} \\ \frac{\partial MSE}{\partial w_2} \end{bmatrix}$$
 
 ### Part D
-???? HELP PLS
+Now, having derived the scalar form of the result above, we will attempt to vectorize the result in a cleaner, convenient form.
+
+$$\nabla_{\textbf{w}}MSE = \frac{2}{m}X^T\left[ (\sigma(X\textbf{w})-\textbf{y})*\sigma(X\textbf{w})*(1-\sigma(X\textbf{w})) \right]$$
+where $*$ indicates component-wise multiplication of vectors.
 
 ### Part E
+
  
 
