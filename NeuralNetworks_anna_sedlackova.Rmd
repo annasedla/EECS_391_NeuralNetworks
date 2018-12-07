@@ -345,18 +345,26 @@ plot6
 Let us put everything together so we only have one method with the initial constants as an input as well as the gradient step size. We are also going to make both of our plotting functions inside our method directly. 
 
 ```{r}
-optimizing <- function(w0, w1, w2, step_size, number_of_iterations) {
+optimizing <- function(w0, w1, w2, step_size, number_of_iterations, display_learning_curve) {
+ W <- c(w0,w1,w2)
   
-  W <- c(w0,w1,w2)
-  
- mse <- c(0,number_of_iterations + 1)
- iteration <- c(0, number_of_iterations + 1)
+ mse <- c(0,number_of_iterations)
+ iteration <- c(0, number_of_iterations)
   
   for (i in 1:number_of_iterations){
-    mse_at_i <- gradMSE(X_data,y_data,W[1],W[2],W[3])
-    mse[i] <- mse_at_i
+    if (i = 1){
+      previousW <- c(0,0,0)
+    }
+    mse[i] <- mean_squared_error(X_data, y_data, W[1], W[2], W[3])
     iteration[i] <- i
-    W <- W - (step_size)*mse_at_i
+    
+    # Break out of the loop using stopping criterion if necessary
+    if (abs(W[1] - previousW[1]) < 0.005 & abs(W[2] - previousW[2]) < 0.005 & abs(W[3] - previousW[3]) < 0.005){
+      break
+    }
+    
+    previousW <- W
+    W <- W - (step_size)*gradMSE(X_data,y_data,W[1],W[2],W[3])
   }
   
   # Make a new data frame to store results for the learning curve
@@ -371,6 +379,13 @@ optimizing <- function(w0, w1, w2, step_size, number_of_iterations) {
   
   optimizing_function <- function(x) ((-W[1]/W[3]) + (-W[2]/W[3])*x)
   
+  # Learning curve
+  optimizing_curve <- ggplot(learning_curve_data, aes(x = iteration, y = mse)) +
+  geom_point(size = 1.2, col = 'darkgreen', shape = 2) +
+  geom_line(lwd = 1.2, col = 'darkgreen') + ylab('Mean Squared Error') +
+  ggtitle(sprintf('Learning Curve with step: %0.4f', step_size)) +
+  theme_classic(12)
+  
   # Current decision boundary location overlayed on the data
   optimizing_plot <- iris_data %>% filter(species == 'versicolor' | species == 'virginica') %>%
   ggplot(aes(x = petal_length, y = petal_width, color = species)) + geom_point() +
@@ -378,16 +393,11 @@ optimizing <- function(w0, w1, w2, step_size, number_of_iterations) {
   ggtitle("Optimal MSE: Petal Width vs Petal Length for Versicolor and Virginica") +
      stat_function(fun = optimizing_function)
 
-  optimizing_plot
-  
-  # Learning curve
-  optimizing_curve <- ggplot(learning_curve_data, aes(x = iteration, y = mse)) + 
-  geom_point(size = 1.2, col = 'darkgreen', shape = 2) + 
-  geom_line(lwd = 1.2, col = 'darkgreen') + ylab('Mean Squared Error') + 
-  ggtitle(sprintf('Learning Curve with step: %0.4f', step_size)) + 
-  theme_classic(12)
-  
-  optimizing_curve
+  if (display_learning_curve == FALSE){
+    optimizing_plot
+  } else {
+    optimizing_curve
+  }
 }
 ```
 
@@ -397,9 +407,11 @@ We are going to test our function above with different (randomized) starting poi
 
 ```{r}
 # Examples of function above
-optimizing(-8,1,1, 0.05, 10)
+optimizing(-8,1,1, 0.05, 10, TRUE)
+optimizing(-8,1,1, 0.05, 10, FALSE)
 
-optimizing(-8,1,1, 0.05, 1000)
+optimizing(-8,1,1, 0.05, 1000, TRUE)
+optimizing(-8,1,1, 0.05, 1000, FALSE)
 ```
 
 ### Part D
