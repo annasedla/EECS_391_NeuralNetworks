@@ -61,7 +61,6 @@ for epoch in range(num_epochs):
   if epoch % 100 == 0:
     print('Epoch: {} | Loss: {:.6f}'.format(epoch, loss.item()))
 
-
 model.eval()
 
 pred = torch.zeros(out_vec.shape)

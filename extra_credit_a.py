@@ -77,7 +77,4 @@ def one_if_same(a, b):
   else:
     return 0
 
-print('Correct classifications:')
-print(sum(map(one_if_same, pred, out_vec.values)))
-print("out of")
-print(len(out_vec))
+print('Correct classifications: {}/{}'.format(sum(pred == torch.tensor(out_vec.values).float()),len(out_vec)))
