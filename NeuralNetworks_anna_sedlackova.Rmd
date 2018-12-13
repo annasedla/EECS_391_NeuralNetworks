@@ -1,8 +1,18 @@
 ---
-gtitle: "NeuralNetworks"
+title: 'EECS 391 Programming Project 2'
 author: "Anna Sedlackova"
-date: "11/24/2018"
-output: pdf_document
+date:  "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  pdf_document:
+    toc: true
+    number_sections: true
+    toc_depth: 6
+  html_document:
+    font-size: 10em 
+    self_contained: yes
+    toc: yes
+urlcolor: blue
+always_allow_html: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -12,7 +22,7 @@ library(datasets)
 library(plotly)
 ```
 
-## Exercie 1: Linear Decision Boundaries
+## Exercise 1: Linear Decision Boundaries
 ### Part A
 
 Lets load and important the iris data set
@@ -90,8 +100,8 @@ z_function <- function(x) (2.8 + (-1/4)*x)
 plot2 <- iris_data %>% filter(species %in% c('versicolor','virginica')) %>%
 ggplot(aes(x = petal_length, y = petal_width, color = species)) + geom_point() +
 labs(color = "Species") + xlab("Petal Length") + ylab("Petal Width") +
-ggtitle("Petal Width vs Petal Length for Versicolor and Virginica") 
-+ stat_function(fun = z_function)
+ggtitle("Petal Width vs Petal Length for Versicolor and Virginica") +
+  stat_function(fun = z_function)
 
 plot2
 ```
@@ -99,22 +109,31 @@ plot2
 ### Part D
 
 ```{r}
-# graph_data <- iris_data %>% filter(species %in% c('versicolor','virginica'))
-# 
-# # We are going to use the plot 3D library to graph this
-# x <- c(1,2,3,4,5,6,7,8,9,10)
-# y <- c(1,2,3,4,5,6,7,8,9,10)
-# z <- rep(0,10)
-# 
-# for (i in 1:10)
-# {
-#   z[i]<-1/(1+exp(-(2.8 - 1/4*x[i] - y[i])))
-# }
-# 
-# p <- plot_ly(x = x, y = y, z = z) %>% add_surface()
-# p
-```
+# Create vectors of the input dimensions discretized
+x_dim <- seq(0, 10, by = 0.1)
+y_dim <- seq(0, 10, by = 0.1)
 
+# Output of neural network at all the discretized points
+z_dim <- matrix(data = NA, nrow = length(x_dim), ncol = length(y_dim), byrow = FALSE, dimnames = NULL)
+for (i in 1:length(x_dim)){
+  for (j in 1:length(y_dim)){
+    z_dim[i,j] = one_layer_neural_network(-2.8, 0.25, 1, x_dim[i], y_dim[j])
+  }
+}
+
+# Plot the surface
+plot_ly(x = x_dim, y = y_dim, z = z_dim) %>%
+add_surface() %>%
+layout(
+title = "Neural Network Output vs. Input Dimensions",
+scene = list(
+xaxis = list(title = "Petal Length"),
+yaxis = list(title = "Petal Width"),
+zaxis = list(title = "Output")
+))
+```
+Because the 3D plotting package has issues the 3D plot is attached seperately as an image. You can still view the 3D file when running the rmd file.
+  
 ### Part E
 
 Now let's see how are function from Part B performs:
@@ -159,7 +178,8 @@ Results match to what we have seen in the graph above.
 Mean squared error calculations. The inputs are in order: the data vectors (as the iris dataset that the petal length and petal width information is taken from), the parameters defining the neural network ($w_0$, $w_1$, $w_2$).
 ```{r}
 # Input feature vectors
-X_data <- iris_data %>% filter(species %in% c("versicolor","virginica")) %>% select(petal_length, petal_width)
+X_data <- iris_data %>% filter(species %in% c("versicolor","virginica")) %>%
+  select(petal_length, petal_width)
 # Pattern classes for each feature vector above
 y_data <- iris_data %>%
   filter(species %in% c("versicolor","virginica")) %>%
@@ -262,10 +282,28 @@ The combination of these three partial derivatives then gives the gradient of th
 $$\nabla_{\textbf{w}}MSE = \begin{bmatrix} \frac{\partial MSE}{\partial w_0} \\ \frac{\partial MSE}{\partial w_1} \\ \frac{\partial MSE}{\partial w_2} \end{bmatrix}$$
 
 ### Part D
-Now, having derived the scalar form of the result above, we will attempt to vectorize the result in a cleaner, convenient form.
+Now, having derived the scalar form of the result above, we will attempt to vectorize the result in a cleaner, convenient form. First, if we look at each of the partial derivatives above, there is a common factor in all of them. Let's denote $z_i$ as the following:
 
-$$\nabla_{\textbf{w}}MSE = \frac{2}{m}X^T\left[ (\sigma(X\textbf{w})-\textbf{y})*\sigma(X\textbf{w})*(1-\sigma(X\textbf{w})) \right]$$
-where $*$ indicates component-wise multiplication of vectors.
+$$z_i = [\sigma(\textbf{w}^T\textbf{x}_i)-y_i][\sigma(\textbf{w}^T\textbf{x}_i)][1- \sigma(\textbf{w}^T\textbf{x}_i)]$$
+Then the gradient becomes the following:
+$$\nabla_{\textbf{w}}MSE =\frac{2}{m} \begin{bmatrix} \sum\limits_{i=1}^{m}z_i \\ \sum\limits_{i=1}^{m}z_i x_{i1} \\ \sum\limits_{i=1}^{m}z_i x_{i2} \end{bmatrix} = \frac{2}{m} \begin{bmatrix}
+    1 & \dots & 1 \\
+    x_{11} &  \dots & x_{m1} \\
+    x_{12} & \dots  & x_{m2}
+\end{bmatrix} \begin{bmatrix} z_1 \\ \vdots \\ z_m \end{bmatrix} = \frac{2}{m} X^T \begin{bmatrix} z_1 \\ \vdots \\ z_m \end{bmatrix}$$
+
+Now, let's focus on the vector of all $z_i$. Notice the following:
+
+$$\begin{bmatrix} z_1 \\ \vdots \\ z_m \end{bmatrix} = 
+\begin{bmatrix}  [\sigma(\textbf{w}^T\textbf{x}_1)-y_1][\sigma(\textbf{w}^T\textbf{x}_1)][1- \sigma(\textbf{w}^T\textbf{x}_1)] \\ \vdots \\  [\sigma(\textbf{w}^T\textbf{x}_m)-y_m][\sigma(\textbf{w}^T\textbf{x}_m)][1- \sigma(\textbf{w}^T\textbf{x}_m)] \end{bmatrix} = \begin{bmatrix} \sigma(\textbf{w}^T\textbf{x}_1)-y_1 \\ \vdots \\  \sigma(\textbf{w}^T\textbf{x}_m)-y_m \end{bmatrix} * \begin{bmatrix} \sigma(\textbf{w}^T\textbf{x}_1) \\ \vdots \\  \sigma(\textbf{w}^T\textbf{x}_m) \end{bmatrix} * \begin{bmatrix} 1- \sigma(\textbf{w}^T\textbf{x}_1) \\ \vdots \\  1- \sigma(\textbf{w}^T\textbf{x}_m) \end{bmatrix}
+$$
+where in the above the $*$ denotes component-wise multiplication of vectors. Defining the following convenient notation,
+
+$$\sigma(X\textbf{w}) = \begin{bmatrix} \sigma(\textbf{w}^T\textbf{x}_1) \\ \vdots \\  \sigma(\textbf{w}^T\textbf{x}_m) \end{bmatrix}$$
+we can then express our final vector expression conveniently as the following result:
+
+$$\nabla_{\textbf{w}}MSE = \frac{2}{m}X^T \left[ (\sigma(X\textbf{w})-\textbf{y})*\sigma(X\textbf{w})*(\textbf{1}-\sigma(X\textbf{w})) \right]$$
+where $\textbf{1}$ is the m-dimensional vector with 1 in all components.
 
 ### Part E
 Let us write the code to computer the summed gradient for an ensemble of patterns. The algorithm goes as follows:
@@ -299,15 +337,15 @@ gradMSE <- function(X, y, w0, w1, w2) {
 }
 ```
 
+In order to demonstrate how the gradient changes, we are going to run through the algorithm 10000 times and and create a before and after plot.
 
-In order to demonstrate how the gradient changes, we are going to run through the algorithm three times and and create three plots with the step size of 0.5.
 ```{r}
-# Initially constants are set to zero
+# Initially constants are set to one
 W <- c(1, 1, 1)
 print(W)
 print(paste("MSE Before Update:",mean_squared_error(X_data,y_data,W[1],W[2],W[3])))
 
-# We are going to iterate five times and print the respective plots
+# We are going to iterate 10000 times and print the respective plots
 for (i in 1:10000){
   # Step size
   W <- W - (0.01)*gradMSE(X_data,y_data,W[1],W[2],W[3])
@@ -325,8 +363,8 @@ z_function4 <- function(x) ((-1) + (-1)*x)
 plot5 <- iris_data %>% filter(species == 'versicolor' | species == 'virginica') %>%
 ggplot(aes(x = petal_length, y = petal_width, color = species)) + geom_point() +
 labs(color = "Species") + xlab("Petal Length") + ylab("Petal Width") +
-ggtitle("Optimal MSE: Petal Width vs Petal Length for Versicolor and Virginica") 
-+ stat_function(fun = z_function4)
+ggtitle("Initial: Petal Width vs Petal Length") +
+  stat_function(fun = z_function4)
 
 plot5
 ```
@@ -339,8 +377,8 @@ z_function5 <- function(x) ((4.3889725/2.2170461) + (-0.1621191/2.2170461)*x)
 plot6 <- iris_data %>% filter(species == 'versicolor' | species == 'virginica') %>%
 ggplot(aes(x = petal_length, y = petal_width, color = species)) + geom_point() +
 labs(color = "Species") + xlab("Petal Length") + ylab("Petal Width") +
-ggtitle("Optimal MSE: Petal Width vs Petal Length for Versicolor and Virginica") 
-+ stat_function(fun = z_function5)
+ggtitle("After 10k iterations: Petal Width vs Petal Length") +
+  stat_function(fun = z_function5)
 
 plot6
 ```
@@ -348,7 +386,7 @@ plot6
 ## Exercise 3:  Learning a Decision Boundary Through Optimization
 
 ### Part A and Part B
-Let us put everything together so we only have one method with the initial constants as an input as well as the gradient step size. We are also going to make both of our plotting functions inside our method directly. 
+Let us put everything together so we only have one method with the initial constants as an input as well as the gradient step size and the number of iterations. We are also going to make both of our plotting functions inside our method directly. 
 
 ```{r}
 optimizing <- function(w0, w1, w2, step_size, number_of_iterations, display_learning_curve) {
@@ -367,7 +405,7 @@ optimizing <- function(w0, w1, w2, step_size, number_of_iterations, display_lear
     # Break out of the loop using stopping criterion if necessary
     if (abs(W[1] - previousW[1]) < 0.00005 & abs(W[2] - previousW[2]) < 0.00005 &
         abs(W[3] - previousW[3]) < 0.00005){
-      print("we broke")
+      print("Weights differ by less than 0.00005.")
       break
     }
     
@@ -411,10 +449,7 @@ optimizing <- function(w0, w1, w2, step_size, number_of_iterations, display_lear
 
 ### Part C
 
-Run your code on the iris data set starting from a random setting of the weights. Note: you might need10 P.to restrict the degree of randomness so that the initial decision boundary is visible somewhere in the1
-plot. In your writeup, show the two output plots at the initial, middle, and final locations of the decisionboundary.
-
-We are going to test our function above with different (randomized) starting points.
+We are going to test our function above with different (randomized) starting points. The points were adjusted so the initial line would fit in the plot. We can see that at each iteration the line moves closer to the "correct" dividing area and the mean square error gets smaller. Interestingly, at the final stage we just break out of the loop because the weights stay about the same at the different iterations of the loop.
 
 ```{r}
 # Let's test this two times
@@ -439,9 +474,9 @@ optimizing(c1,c2,c3, 0.005, 2000, FALSE)
 The gradient step size was chosen by trial and error. If the gradient step size is too large, the algorithm will never converge and instead it will jump around the mimimum. If the gradient step size is too small, the algorithm will converge after a very long time. After experimenting with different types of learning rates, I decided on 0.005. This learning rate seemed to converge after a short time and at the same time did not get stuck on a local mimimum.
 
 ### Part E
-I have used two different checks for the stopping criteria. The first was based on a tolerance threshold for the minimum change in the gradients. If the gradients were not changing above a treshold set to 0.0005 that the algorithm would stop. This stopping criterion is effective because the magnitude of the gradients is directly proportional to the error.
+I have used two different checks for the stopping criteria. The first was based on a tolerance threshold for the minimum change in the gradients. If the gradients were not changing above a treshold set to 0.00005 that the algorithm would stop. This stopping criterion is effective because the magnitude of the gradients is directly proportional to the error.
 
-The second stopping measure was the number of iterations. When the gradient step is set too low it takes more iterations for the algoirthm to complete, than with a large gradient.
+The second stopping measure was the number of iterations. If the step size is too large and the gradient keeps jumping around a minimum, this measure will force it to stop running.
 
 ## Extra Credit
 For part a, the result said that we have "Correct classifications: 93/100". For part b, the result said "Correct classifications: 141 out of 150". Code attached as a python file seperately.
